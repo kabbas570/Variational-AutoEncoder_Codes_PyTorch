@@ -853,7 +853,7 @@ def save_checkpoint(state, filename=path_to_save_check_points+".pth.tar"):
     print("=> Saving checkpoint")
     torch.save(state, filename)
  
-from vae_model import VAE_T
+from vae1 import VAE_T
 
 model_1 = VAE_T()
 
