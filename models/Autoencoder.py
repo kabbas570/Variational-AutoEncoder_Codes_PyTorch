@@ -74,7 +74,7 @@ class Autoencoder_2D2_7(nn.Module):
             
             torch.nn.Linear(16*16*Base, 8192),
             nn.InstanceNorm1d(8192),
-            nn.Sigmoid(),
+            nn.Sigmoid(),   # aslo tried ReLU here and no activaton as well.
             
             torch.nn.Linear(8192,8192),
             nn.InstanceNorm1d(8192),
