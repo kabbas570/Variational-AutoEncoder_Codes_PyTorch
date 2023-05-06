@@ -55,3 +55,22 @@ for i in range(17):
     plt.imshow(c[i,:])
     
     print(np.max(c[i,:]))
+
+
+from scipy.ndimage import distance_transform_edt as distance
+from skimage import segmentation as skimage_seg
+
+
+def SDF_2D(img):
+    img = img.astype(np.uint8)
+    normalized_sdf = np.zeros(img.shape)
+    posmask = img.astype(bool)
+    if posmask.any():
+        negmask = ~posmask
+        posdis = distance(posmask)
+        negdis = distance(negmask)
+        boundary = skimage_seg.find_boundaries(posmask, mode='inner').astype(np.uint8)
+        sdf = (negdis-np.min(negdis))/(np.max(negdis)-np.min(negdis))*negmask - (posdis-np.min(posdis))/(np.max(posdis)-np.min(posdis))*posmask
+        sdf[boundary==1] = 0
+        normalized_sdf = sdf
+    return normalized_sdf
