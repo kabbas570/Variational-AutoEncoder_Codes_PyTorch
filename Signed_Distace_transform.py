@@ -29,3 +29,29 @@ def SDF_2D(ima):
     phi = np.where(phi, 0, -1) + 0.5
     sd = skfmm.distance(phi, dx = 1)
     return sd
+
+from scipy import ndimage
+dst = ndimage.distance_transform_edt(img)
+
+
+
+def get_distance(f):
+    """Return the signed distance to the 0.5 levelset of a function."""
+
+    # Prepare the embedding function.
+    f = f > 1
+
+    # Signed distance transform
+    dist_func = ndimage.distance_transform_edt
+    distance = np.where(f, dist_func(f) - 0.5, -(dist_func(1-f) - 0.5))
+
+    return distance
+
+c =get_distance(img)
+
+
+for i in range(17):
+    plt.figure()
+    plt.imshow(c[i,:])
+    
+    print(np.max(c[i,:]))
