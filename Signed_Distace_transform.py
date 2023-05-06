@@ -18,3 +18,14 @@ def SDF(ima):
     return sd
 
 a = SDF(ima)
+
+## For 2D 
+
+
+import skfmm
+
+def SDF_2D(ima):
+    phi = np.int64(ima)
+    phi = np.where(phi, 0, -1) + 0.5
+    sd = skfmm.distance(phi, dx = 1)
+    return sd
