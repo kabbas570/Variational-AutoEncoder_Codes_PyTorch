@@ -74,3 +74,28 @@ def SDF_2D(img):
         sdf[boundary==1] = 0
         normalized_sdf = sdf
     return normalized_sdf
+
+
+
+
+
+#import skfmm
+#
+#def SDF_2D(ima):
+#    phi = np.int64(ima)
+#    phi = np.where(phi, 0, -1) + 0.5
+#    sd = skfmm.distance(phi, dx = 1)
+#    return sd
+
+from scipy import ndimage
+#def SDF_2D(f):
+#    """Return the signed distance to the 0.5 levelset of a function."""
+#
+#    # Prepare the embedding function.
+#    f = f > 0.5
+#
+#    # Signed distance transform
+#    dist_func = ndimage.distance_transform_edt
+#    distance = np.where(f, dist_func(f) - 0.5, -(dist_func(1-f) - 0.5))
+#
+#    return distance
