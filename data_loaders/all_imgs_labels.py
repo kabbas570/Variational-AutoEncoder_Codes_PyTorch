@@ -243,7 +243,7 @@ class Dataset_io(Dataset):
         img = Cropping_3d(org_dim3,org_dim1,org_dim2,DIM_,img) 
         img = np.expand_dims(img, axis=0)
         temp_LA_ED = generate_label_3(img) 
-        return img_LA_ES,temp_LA_ES,img_LA_ED,temp_LA_ED,img_SA_ES,temp_SA_ES,img_SA_ED,temp_SA_ED
+        return return img_LA_ES[:,0,:],temp_LA_ES[:,0,:],img_LA_ED[:,0,:],temp_LA_ED[:,0,:],img_SA_ES,temp_SA_ES,img_SA_ED,temp_SA_ED
         
 def Data_Loader_io_transforms(df,images_folder,batch_size,num_workers=NUM_WORKERS,pin_memory=PIN_MEMORY):
     test_ids = Dataset_io(df=df ,images_folder=images_folder)
@@ -350,7 +350,7 @@ class Dataset_V(Dataset):
         img = Cropping_3d(org_dim3,org_dim1,org_dim2,DIM_,img) 
         img = np.expand_dims(img, axis=0)
         temp_LA_ED = generate_label_3(img) 
-        return img_LA_ES,temp_LA_ES,img_LA_ED,temp_LA_ED,img_SA_ES,temp_SA_ES,img_SA_ED,temp_SA_ED
+        return img_LA_ES[:,0,:],temp_LA_ES[:,0,:],img_LA_ED[:,0,:],temp_LA_ED[:,0,:],img_SA_ES,temp_SA_ES,img_SA_ED,temp_SA_ED
         
 def Data_Loader_V(df,images_folder,batch_size,num_workers=NUM_WORKERS,pin_memory=PIN_MEMORY):
     test_ids = Dataset_V(df=df ,images_folder=images_folder)
