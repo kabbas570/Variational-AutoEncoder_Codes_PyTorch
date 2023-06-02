@@ -1,156 +1,3 @@
-import torch
-import torch.nn as nn
-
-class DoubleConv(nn.Module):
-    def __init__(self, in_channels, out_channels, mid_channels=None):
-        super().__init__()
-        if not mid_channels:
-            mid_channels = out_channels
-        self.double_conv = nn.Sequential(
-            nn.Conv3d(in_channels, mid_channels, kernel_size=3, padding=1),
-            nn.BatchNorm3d(mid_channels),
-            nn.ReLU(),
-            
-            nn.Conv3d(mid_channels, out_channels, kernel_size=3, padding=1),
-            nn.BatchNorm3d(out_channels),
-            nn.ReLU(),
-        )
-
-    def forward(self, x):
-        return self.double_conv(x)
-
-class Down(nn.Module):
-    def __init__(self, in_channels, out_channels):
-        super().__init__()
-        self.maxpool_conv = nn.Sequential(
-            nn.MaxPool3d((1,2,2),(1,2,2)),
-            DoubleConv(in_channels, out_channels)
-        )
-
-    def forward(self, x):
-        
-        return self.maxpool_conv(x)
-class Down_2(nn.Module):
-    def __init__(self, in_channels, out_channels):
-        super().__init__()
-        self.maxpool_conv = nn.Sequential(
-            nn.MaxPool3d((2,2,2),(2,2,2)),
-            DoubleConv(in_channels, out_channels)
-        )
-
-    def forward(self, x):
-        return self.maxpool_conv(x)
-
-class Up(nn.Module):
-    def __init__(self, in_channels,out_channels, bilinear=True):
-        super().__init__()
-        if bilinear:
-            self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
-            self.conv = DoubleConv(in_channels, out_channels, in_channels // 2)
-        else:
-            self.up = nn.ConvTranspose3d(in_channels, in_channels // 2, kernel_size=(1,2,2), stride=(1,2,2))
-            self.conv = DoubleConv(in_channels, out_channels)
-
-    def forward(self, x1, x2):
-                
-        x1 = self.up(x1)
-        x = torch.cat([x2, x1], dim=1)
-        return self.conv(x)
-
-class Up_2(nn.Module):
-    def __init__(self, in_channels,out_channels, bilinear=True):
-        super().__init__()
-        if bilinear:
-            self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
-            self.conv = DoubleConv(in_channels, out_channels, in_channels // 2)
-        else:
-            self.up = nn.ConvTranspose3d(in_channels, in_channels // 2, kernel_size=(2,2,2), stride=(2,2,2))
-            self.conv = DoubleConv(in_channels, out_channels)
-
-    def forward(self, x1, x2):
-                
-        x1 = self.up(x1)
-        x = torch.cat([x2, x1], dim=1)
-        return self.conv(x)
-    
-class Up_last(nn.Module):
-    def __init__(self, in_channels, in_channels1,out_channels, bilinear=True):
-        super().__init__()
-        if bilinear:
-            self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
-            self.conv = DoubleConv(in_channels, out_channels, in_channels // 2)
-        else:
-            self.up = nn.ConvTranspose3d(in_channels, in_channels // 2, kernel_size=(1,2,2), stride=(1,2,2))
-            self.conv = DoubleConv(in_channels1, out_channels)
-
-    def forward(self, x1, x2):
-                
-        x1 = self.up(x1)
-        x = torch.cat([x2, x1], dim=1)
-        return self.conv(x)
-
-    
-class OutConv(nn.Module):
-    def __init__(self, in_channels, out_channels):
-        super(OutConv, self).__init__()        
-        self.conv = nn.Sequential(
-            nn.Conv3d(in_channels, out_channels, kernel_size=1),
-            nn.Tanh()
-            )
-
-    def forward(self, x):
-        return self.conv(x)
-
-class UNet_512(nn.Module):
-    def __init__(self, n_channels = 1, bilinear=False):
-        super(UNet_512, self).__init__()
-        self.n_channels = n_channels
-        self.bilinear = bilinear
-
-        self.inc = DoubleConv(n_channels, 32)
-        self.down1 = Down_2(32, 64)
-        self.down2 = Down(64, 128)
-        self.down3 = Down_2(128,256)
-        self.down4 = Down(256, 512)
-        factor = 2 if bilinear else 1
-        
-        self.up0 = Up(512, 256 // factor, bilinear)
-        self.up1 = Up_2(256, 128 // factor, bilinear)
-        self.up2 = Up(128, 64 // factor, bilinear)
-        self.up3 = Up_2(64, 32 // factor, bilinear)
-        self.outc = OutConv(32,3)
-                
-        self.Drop_Out= nn.Dropout(p=0.20)
-        
-
-    def forward(self,x):
-        
-        x1 = self.inc(x)
-        x2 = self.down1(x1)
-        x3 = self.down2(x2)
-        x4 = self.down3(x3)
-        x5 = self.down4(x4)
-        
-        x5 = self.Drop_Out(x5)
-        
-        z1 = self.up0(x5, x4)
-        z2 = self.up1(z1, x3)
-        z3 = self.up2(z2, x2)
-        z4 = self.up3(z3, x1)
-        logits1 = self.outc(z4)
-        return logits1
-            
-    
-# Input_Image_Channels = 1
-# def model() -> UNet_512:
-#     model = UNet_512()
-#     return model
-# DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-# from torchsummary import summary
-# model = model()
-# model.to(device=DEVICE,dtype=torch.float)
-# summary(model, [(Input_Image_Channels,16, 256,256)])
-
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 import numpy as np
@@ -358,8 +205,8 @@ def Data_Loader_train(df,images_folder,batch_size,num_workers=NUM_WORKERS,pin_me
     return data_loader
 
 
-val_imgs = r"C:\My_Data\M2M Data\data\data_2\train"
-val_csv_path = r"C:\My_Data\M2M Data\data\train.csv"
+val_imgs = r"C:\My_Data\M2M Data\data\data_2\val"
+val_csv_path = r"C:\My_Data\M2M Data\data\val.csv"
 df_val = pd.read_csv(val_csv_path)
 train_loader = Data_Loader_train(df_val,val_imgs,batch_size = 1)
 a = iter(train_loader)
@@ -369,7 +216,7 @@ img_path = r'C:\My_Data\M2M Data\data\new_data\SA_Data\imgs'
 gt_path = r'C:\My_Data\M2M Data\data\new_data\SA_Data\gts'
 import nibabel as nib  
 
-for i in range(1):
+for i in range(40):
     a1 = next(a)
     
     name = a1[4][0].numpy()
@@ -428,14 +275,15 @@ for i in range(1):
             
         
     
-img = sitk.ReadImage(r"C:\My_Data\M2M Data\data\new_data\SA_Data\gts\142_ES.nii.gz")
-img = sitk.GetArrayFromImage(img)   ## --> [C,H,W]
-for i in range(7):
-         plt.imsave(r'C:\My_Data\M2M Data\data\new_data\SA_Data/' + str(i)+ 'ES'+ '.png', img[:,:,i])
+# img = sitk.ReadImage(r"C:\My_Data\M2M Data\data\new_data\SA_Data\imgs\142_ED.nii.gz")
+# img = sitk.GetArrayFromImage(img)   ## --> [C,H,W]
+# img = np.moveaxis(img,(2,1,0),(0,1,2))
+# for i in range(7):
+#          plt.imsave(r'C:\My_Data\M2M Data\data\new_data\SA_Data/' + str(i)+ 'ES'+ '.png', img[i,:])
          
          
 
-for i in range(16):
-         gt = a1[0][0,:].numpy()
-         plt.imsave(r'C:\My_Data\M2M Data\data\new_data\SA_Data\check/' + str(i)+'img'+ 'ES'+ '.png', gt[i,:])
+# for i in range(16):
+#          gt = a1[0][0,:].numpy()
+#          plt.imsave(r'C:\My_Data\M2M Data\data\new_data\SA_Data\check/' + str(i)+'img'+ 'ES'+ '.png', gt[i,:])
          
