@@ -105,7 +105,7 @@ def Normalization_1(img):
         return img 
 
 def generate_label_3(gt):
-        temp_ = np.zeros([3,gt.shape[1],DIM_,DIM_])
+        temp_ = np.zeros([3,gt.shape[1],gt.shape[2],gt.shape[3]])
         temp_[0:1,:,:,:][np.where(gt==1)]=1
         temp_[1:2,:,:,:][np.where(gt==2)]=1
         temp_[2:3,:,:,:][np.where(gt==3)]=1
@@ -158,20 +158,11 @@ class Dataset_V(Dataset):
         img_2d_itk = resample_image(img_2d_itk,is_label=False) 
         img_2d = sitk.GetArrayFromImage(img_2d_itk)
         img_2d = Normalization_1(img_2d)
-        org_dim3 = img_2d.shape[0]
-        org_dim1 = img_2d.shape[1]
-        org_dim2 = img_2d.shape[2]
-                
-        img_2d = Cropping_3d(org_dim3,org_dim1,org_dim2,DIM_,img_2d)     
-      
+                      
         gt_2d_itk = sitk.ReadImage(gt_2d_path)
         gt_2d_itk = resample_image(gt_2d_itk,is_label=True) 
         gt_2d = sitk.GetArrayFromImage(gt_2d_itk)
-        gt_2d= Cropping_3d(org_dim3,org_dim1,org_dim2,DIM_,gt_2d)
-        gt_2d = np.expand_dims(gt_2d, axis=0)
-        gt_2d = generate_label_3(gt_2d) 
-        
-      
+
         gt_3d_itk = sitk.ReadImage(gt_3d_path)
         
         ### projection part  #####
@@ -179,19 +170,19 @@ class Dataset_V(Dataset):
         proj_itk = SA_to_LA(gt_3d_itk,img_2d_itk)
         proj_itk = resample_image(proj_itk,is_label=True) 
         proj_itk = sitk.GetArrayFromImage(proj_itk)
-        org_dim3 = proj_itk.shape[0]
-        org_dim1 = proj_itk.shape[1]
-        org_dim2 = proj_itk.shape[2]
-        proj_itk = Cropping_3d(org_dim3,org_dim1,org_dim2,DIM_,proj_itk)
         
         proj_itk = np.expand_dims(proj_itk, axis=0)
         proj_itk = generate_label_3(proj_itk) 
         proj_itk = proj_itk[:,0,:]
         
+        
+        print(img_2d.shape)
+        print(proj_itk.shape)
+        print(gt_2d.shape)
         new_img = np.concatenate((img_2d, proj_itk), axis=0)
         
 
-        return img_2d,gt_2d[:,0,:],new_img  ## remove the depth from 2D data 
+        return img_2d,gt_2d,new_img, self.img_2ds[index]
         
 def Data_Loader_V(img_2ds_folder,gt_2ds_folder,img_3ds_folder,gt_3ds_folder,batch_size,num_workers=NUM_WORKERS,pin_memory=PIN_MEMORY):
     test_ids = Dataset_V(img_2ds_folder=img_2ds_folder,gt_2ds_folder=gt_2ds_folder,img_3ds_folder=img_3ds_folder,gt_3ds_folder=gt_3ds_folder)
@@ -207,31 +198,87 @@ gt_3d_path =r'C:\My_Data\M2M Data\Dataset031_MNM\labelsTs'
 loader = Data_Loader_V(img_2d_path,gt_2d_path,img_3d_path,gt_3d_path,1)
 
 a = iter(loader)
-a1 = next(a)
-
-plt.figure()
-plt.imshow(a1[0][0,0,:])
-
-plt.figure()
-plt.imshow(a1[1][0,0,:])
+#a1 = next(a)
 
 # plt.figure()
-# plt.imshow(a1[1][0,1,:])
+# plt.imshow(a1[0][0,0,:])
+
 # plt.figure()
-# plt.imshow(a1[1][0,2,:])
+# plt.imshow(a1[1][0,0,:])
 
-# import torchvision
-# for i in range(100):
-#     filepath = os.path.join(r'C:\My_Data\SEG.A. 2023\save', str(i)+'.png')
-#     #torchvision.utils.save_image(a1[3][0,i,:,:], filepath)
-#     plt.imsave(r'C:\My_Data\SEG.A. 2023\save' + str(i) + '.png', a1[3][0,i,:,:])
-
- 
-
-# for i in range(11):
+# for i in range(4):
 #     plt.figure()
 #     plt.imshow(a1[2][0,i,:])
 
-# for i in range(11):
-#     plt.figure()
-#     plt.imshow(a1[3][0,i,:])
+import nibabel as nib
+
+img_paths = r'C:\My_Data\M2M Data\data\LA_proj_data\imagesTs'
+gt_paths = r'C:\My_Data\M2M Data\data\LA_proj_data\labelsTs'
+imgc_paths = r'C:\My_Data\M2M Data\data\LA_proj_data\imagesTc'
+
+
+for i in range(1):
+    a1 =next(a)
+    img_name = a1[3][0][:-7]
+    gt_name = img_name[:-5]
+
+
+    img = a1[0][0,:].numpy()
+    gt = a1[1][0,:].numpy()
+    img_c = a1[2][0,:].numpy()
+    
+    
+    print(img_c.shape)
+    
+        ###  saving the imgs 
+    img = np.moveaxis(img, [0, 1, 2], [-1, -2, -3])   ## reverse the dimenssion sof array
+    to_format_img = nib.Nifti1Image(img, np.eye(4))  
+    to_format_img.set_data_dtype(np.uint8)
+    to_format_img.to_filename(os.path.join(img_paths,img_name + '.nii.gz'))
+        
+        ###  saving the gts 
+    gt = np.moveaxis(gt, [0, 1, 2], [-1, -2, -3])   ## reverse the dimenssion sof array
+    to_format_gt = nib.Nifti1Image(gt, np.eye(4))  
+    to_format_gt.set_data_dtype(np.uint8)
+    to_format_gt.to_filename(os.path.join(gt_paths,gt_name+ '.nii.gz'))
+    
+        ###  saving the gts 
+    img_c = np.moveaxis(img_c, [0, 1, 2], [-1, -2, -3])   ## reverse the dimenssion sof array
+    to_format_gt = nib.Nifti1Image(img_c, np.eye(4))  
+    to_format_gt.set_data_dtype(np.uint8)
+    to_format_gt.to_filename(os.path.join(imgc_paths,img_name+ '.nii.gz'))
+    
+    
+
+
+a = sitk.ReadImage(r"C:\My_Data\M2M Data\data\LA_proj_data\imagesTc\178_LA_ED_0000.nii.gz")
+a = sitk.GetArrayFromImage(a)
+
+for i in range(4):
+    plt.figure()
+    plt.imshow(a[i,:])
+    
+    
+
+    
+
+a = sitk.ReadImage(r"C:\My_Data\M2M Data\data\LA_proj_data\imagesTs\178_LA_ED_0000.nii.gz")
+a = sitk.GetArrayFromImage(a)
+
+plt.figure()
+plt.imshow(a[0,:])
+
+
+a = sitk.ReadImage(r"C:\My_Data\M2M Data\data\LA_proj_data\labelsTs\178_LA_ED.nii.gz")
+a = sitk.GetArrayFromImage(a)
+
+plt.figure()
+plt.imshow(a[0,:])
+
+
+
+a = sitk.ReadImage(r"C:\My_Data\M2M Data\Dataset032_MNM\labelsTs\178_LA_ED.nii.gz")
+a = sitk.GetArrayFromImage(a)
+
+plt.figure()
+plt.imshow(a[0,:])
